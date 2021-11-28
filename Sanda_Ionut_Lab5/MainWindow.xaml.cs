@@ -1,5 +1,7 @@
-﻿using System;
+﻿using AutoLotModel;
+using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +25,7 @@ namespace Sanda_Ionut_Lab5
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = this;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -34,11 +37,23 @@ namespace Sanda_Ionut_Lab5
             System.Windows.Data.CollectionViewSource inventoryViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("inventoryViewSource")));
             // Load data by setting the CollectionViewSource.Source property:
             // inventoryViewSource.Source = [generic data source]
+
+            customerViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("customerViewSource")));
+            customerViewSource.Source = ctx.Customers.Local;
+            ctx.Customers.Load();
+
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        enum ActionState
         {
-
+            New,
+            Edit,
+            Delete,
+            Nothing
         }
+
+        ActionState action = ActionState.Nothing;
+        AutoLotEntitiesModel ctx = new AutoLotEntitiesModel();
+        CollectionViewSource customerViewSource;
     }
 }
