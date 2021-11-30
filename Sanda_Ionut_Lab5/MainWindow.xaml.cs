@@ -53,18 +53,20 @@ namespace Sanda_Ionut_Lab5
             inventoryViewSource.Source = ctx.Inventories.Local;
             
             customerOrdersViewSource = ((System.Windows.Data.CollectionViewSource)(this.FindResource("customerOrdersViewSource")));
-            customerOrdersViewSource.Source = ctx.Orders.Local;
-            
+            //customerOrdersViewSource.Source = ctx.Orders.Local;
+
+            BindDataGrid();
+
             ctx.Customers.Load();
             ctx.Inventories.Load();
             ctx.Orders.Load();
 
             cmbCustomers.ItemsSource = ctx.Customers.Local;
-            cmbCustomers.DisplayMemberPath = "FirstName";
-            cmbCustomers.SelectedValuePath = "LastName";
+            //cmbCustomers.DisplayMemberPath = "FirstName";
+            cmbCustomers.SelectedValuePath = "CustId";
 
             cmbInventory.ItemsSource = ctx.Inventories.Local;
-            cmbInventory.DisplayMemberPath = "Make";
+            //cmbInventory.DisplayMemberPath = "Make";
             cmbInventory.SelectedValuePath = "CarId";
         }
 
@@ -239,17 +241,25 @@ namespace Sanda_Ionut_Lab5
             else 
                 if(action == ActionState.Edit)
             {
+                dynamic selectedOrder = ordersDataGrid.SelectedItem;
                 try
                 {
-                    order = (Order)ordersDataGrid.SelectedItem;
-                    order.CustId = Int32.Parse(custIdTextBox.Text.Trim());
-                    order.CarId = Int32.Parse(carIdTextBox.Text.Trim());
-                    ctx.SaveChanges();
+                    int curr_id = selectedOrder.OrderId;
+                    var editedOrder = ctx.Orders.FirstOrDefault(s => s.OrderId == curr_id);
+
+                    if (editedOrder != null)
+                    {
+                        editedOrder.CustId = Int32.Parse(cmbCustomers.SelectedValue.ToString());
+                        editedOrder.CarId = Convert.ToInt32(cmbInventory.SelectedValue.ToString());
+                        ctx.SaveChanges();
+                    }
                 }
                 catch (DataException ex)
                 {
                     MessageBox.Show(ex.Message);
                 }
+                BindDataGrid();
+                customerViewSource.View.MoveCurrentTo(selectedOrder);
 
                 customerOrdersViewSource.View.Refresh();
                 customerOrdersViewSource.View.MoveCurrentTo(order);
@@ -259,9 +269,18 @@ namespace Sanda_Ionut_Lab5
             {
                 try
                 {
-                    order = (Order)ordersDataGrid.SelectedItem;
-                    ctx.Orders.Remove(order);
-                    ctx.SaveChanges();
+                    dynamic selectedOrder = ordersDataGrid.SelectedItem;
+                    int curr_id = selectedOrder.OrderId;
+                    var deleteOrder = ctx.Orders.FirstOrDefault(s => s.OrderId == curr_id);
+
+                    if(deleteOrder != null)
+                    {
+                        ctx.Orders.Remove(deleteOrder);
+                        ctx.SaveChanges();
+                        MessageBox.Show("Order Deleted Successfully", "Message");
+                        BindDataGrid();
+                    }
+
                 }
                 catch (DataException ex)
                 {
@@ -270,5 +289,35 @@ namespace Sanda_Ionut_Lab5
                 customerOrdersViewSource.View.Refresh();
             }
         }
+
+        private void btnOrdersNext_Click(object sender, RoutedEventArgs e)
+        {
+            customerOrdersViewSource.View.MoveCurrentToNext();
+        }
+        private void btnOrdersPrev_Click(object sender, RoutedEventArgs e)
+        {
+            customerOrdersViewSource.View.MoveCurrentToPrevious();
+        }
+
+    private void BindDataGrid()
+    {
+        var queryOrder = from ord in ctx.Orders
+                         join cust in ctx.Customers on ord.CustId equals
+                         cust.CustId
+                         join inv in ctx.Inventories on ord.CarId
+             equals inv.CarId
+                         select new
+                         {
+                             ord.OrderId,
+                             ord.CarId,
+                             ord.CustId,
+                             cust.FirstName,
+                             cust.LastName,
+                             inv.Make,
+                             inv.Color
+                         };
+        customerOrdersViewSource.Source = queryOrder.ToList();
     }
+    }
+
 }
